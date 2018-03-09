@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-4.1.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop-4.1.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx-4.1.xsd">
+        
+  
+   
+    <context:component-scan base-package="com.icss.service"></context:component-scan>
+    
+    <context:property-placeholder location="classpath:db-config.properties"/>
+     <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="jdbcUrl" value="${mysql.jdbcUrl}"></property>
+    	<property name="driverClass" value="${mysql.driver}"></property>
+    	<property name="user" value="${mysql.user}"></property>
+    	<property name="password" value="${mysql.password}"></property>
+    	<property name="initialPoolSize" value="${c3p0.initialSize}"></property>
+    	<property name="minPoolSize" value="${c3p0.minSize}"></property>
+    	<property name="maxPoolSize" value="${c3p0.maxSize}"></property>
+    	<property name="acquireIncrement" value="${c3p0.acquireIncrement}"></property>
+    	<property name="maxIdleTime" value="${c3p0.maxIdleTime}"></property>
+    </bean>
+    
+    <!-- spring整合mybatis -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+    	<property name="dataSource" ref="dataSource"></property>
+    	<property name="configLocation" value="classpath:mybatis-config.xml"></property>
+    	<property name="mapperLocations" value="classpath:com/icss/mapper/*.xml"></property><!-- 加载mapper文件 -->
+    </bean>
+    
+    <!-- mapper接口扫描 -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+    	<property name="basePackage" value="com.icss.dao"></property>
+    	<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+    </bean>
+	
+	<!-- 配置事务管理器 -->
+	<bean id="dbManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	
+	<!-- 声明式事务控制 (隔离级别，传播策略，事务类型)-->
+	<tx:advice id="txManager" transaction-manager="dbManager">
+		<tx:attributes>
+			<tx:method name="insert*" isolation="DEFAULT" propagation="REQUIRED" read-only="false"/>
+			<tx:method name="update*" isolation="DEFAULT" propagation="REQUIRED" read-only="false"/>
+			<tx:method name="delete*" isolation="DEFAULT" propagation="REQUIRED" read-only="false"/>
+			<tx:method name="find*" read-only="true"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- 切入点 -->
+	<aop:config>
+	 	<aop:pointcut expression="within(com.icss.service..*)" id="txPointCut"/>
+		<aop:advisor advice-ref="txManager" pointcut-ref="txPointCut"/>
+	</aop:config>
+	
+</beans>
